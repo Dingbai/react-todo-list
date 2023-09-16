@@ -1,31 +1,45 @@
 import { useState, useEffect } from 'react';
+import { addTodo, getAllTodos, getTodoById,updateTodo, deleteTodoById } from './db';
+
 import './App.css';
 
 type Todo = { id: number; title: string; completed: boolean };
 
-const request = indexedDB.open('TodoList',3);
-request.onupgradeneeded = (event:IDBVersionChangeEvent) => {
-  const res = (event.target as IDBOpenDBRequest).result;
-  const db = res.createObjectStore('todos', {keyPath: 'id'});
-  db.createIndex
-}
 function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   useEffect(() => {
-    setTodos([
-      { id: 1, title: 'Learn React', completed: false },
-      { id: 2, title: 'Learn TypeScript', completed: false },
-      { id: 3, title: 'Learn Next.js', completed: false}
-    ])
-  }, [])
+    const init = async () => {
+      const defaultTodos = await getAllTodos();
+      setTodos(defaultTodos);
+    };
+    init();
+  }, []);
   const [newTodo, setNewTodo] = useState('');
 
-  const addTodo = () => {};
-  const completeTodoItem = (id:number) => {
-    console.log('id :>> ', id);
+  const add = () => {
+    if (!newTodo) return;
+    const newTodos = { id: todos.length + 1, title: newTodo, completed: false };
+    addTodo(newTodos);
+    setTodos([...todos, newTodos]);
+    setNewTodo('');
+  };
+  const completeTodoItem = (id: number) => {
+    const target = getTodoById(id);
+    if (!target) return;
+    const newTodos = todos.map((todo) => {
+      if(todo.id === id) {
+        const newTodo = {...todo, completed: !todo.completed}
+        updateTodo(newTodo);
+        return newTodo;
+      }
+      return todo
+    });
+    setTodos(newTodos);
   };
   const deleteTodoItem = (id: number) => {
-    console.log('id :>> ', id);
+    deleteTodoById(id);
+    const newTodos = todos.filter((todo) => todo.id !== id);
+    setTodos(newTodos);
   };
 
   return (
@@ -53,7 +67,7 @@ function TodoList() {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          addTodo();
+          add();
         }}
       >
         <input
